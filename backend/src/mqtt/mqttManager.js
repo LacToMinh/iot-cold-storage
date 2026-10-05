@@ -156,28 +156,26 @@ export const initMqttClient = (localUrl = LOCAL_BROKER_URL) => {
         return;
       }
 
-      // B. Nhận Telemetry từ Cầu Nối Edge Bridge gửi lên (khi Backend chạy trên Cloud không có Local Docker)
-      if (!localMqttClient || !localMqttClient.connected) {
-        const telRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/telemetry$`);
-        const telMatch = topic.match(telRegex);
-        if (telMatch) {
-          await handleTelemetryMessage(telMatch[1], payloadStr, false);
-          return;
-        }
+      // B. Nhận Telemetry từ Cầu Nối Edge Bridge gửi lên (khi Backend chạy trên Cloud)
+      const telRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/telemetry$`);
+      const telMatch = topic.match(telRegex);
+      if (telMatch) {
+        await handleTelemetryMessage(telMatch[1], payloadStr, false);
+        return;
+      }
 
-        const respRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/(response|ack)$`);
-        const respMatch = topic.match(respRegex);
-        if (respMatch) {
-          await handleResponseMessage(respMatch[1], payloadStr, false);
-          return;
-        }
+      const respRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/(response|ack)$`);
+      const respMatch = topic.match(respRegex);
+      if (respMatch) {
+        await handleResponseMessage(respMatch[1], payloadStr, false);
+        return;
+      }
 
-        const statRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/status$`);
-        const statMatch = topic.match(statRegex);
-        if (statMatch) {
-          await handleStatusMessage(statMatch[1], payloadStr, false);
-          return;
-        }
+      const statRegex = new RegExp(`^${CLOUD_TOPIC_PREFIX}\\/v1\\/devices\\/([^/]+)\\/status$`);
+      const statMatch = topic.match(statRegex);
+      if (statMatch) {
+        await handleStatusMessage(statMatch[1], payloadStr, false);
+        return;
       }
     } catch (err) {
       console.error(`[Broker 2 - Cloud] Lỗi xử lý tin nhắn từ Cloud:`, err.message);
@@ -198,7 +196,7 @@ export const getCloudMqttClient = () => cloudMqttClient;
  * Xử lý dữ liệu Telemetry nhận từ ESP32 tại chỗ
  * Đồng thời bắn bản sao (Bridge) lên Cloud Broker
  */
-export const handleTelemetryMessage = async (deviceId, payloadStr) => {
+export const handleTelemetryMessage = async (deviceId, payloadStr, shouldPublishCloud = true) => {
   try {
     const data = JSON.parse(payloadStr);
     const temperature = parseFloat(data.temperature);
@@ -249,11 +247,9 @@ export const handleTelemetryMessage = async (deviceId, payloadStr) => {
     // ====================================================
     // 5. CẦU NỐI DATA BRIDGE: ĐẨY DỮ LIỆU LÊN CLOUD BROKER
     // ====================================================
-    if (cloudMqttClient && cloudMqttClient.connected) {
+    if (shouldPublishCloud && cloudMqttClient && cloudMqttClient.connected) {
       const cloudTopic = `${CLOUD_TOPIC_PREFIX}/v1/devices/${deviceId}/telemetry`;
       cloudMqttClient.publish(cloudTopic, payloadStr, { qos: 0 });
-      // Ghi log nhẹ nhàng
-      // console.log(`☁️ [Cloud Sync] Đã đồng bộ Telemetry [${deviceId}] lên broker.emqx.io`);
     }
 
     // 6. Logic bảo vệ tự động tại biên (Edge Computing) nếu đang ở chế độ AUTO
@@ -278,7 +274,7 @@ export const handleTelemetryMessage = async (deviceId, payloadStr) => {
  * Xử lý bản tin xác nhận ACK từ ESP32 gửi về
  * Đồng thời đồng bộ trạng thái ACK lên Cloud Broker
  */
-export const handleResponseMessage = async (deviceId, payloadStr) => {
+export const handleResponseMessage = async (deviceId, payloadStr, shouldPublishCloud = true) => {
   try {
     console.log(`📥 [MQTT Response / ACK] Nhận từ ${deviceId}: ${payloadStr}`);
     const data = JSON.parse(payloadStr);
@@ -317,7 +313,7 @@ export const handleResponseMessage = async (deviceId, payloadStr) => {
       broadcastCommandStatus(updatedCommand);
 
       // Cầu nối: Đồng bộ phản hồi ACK lên Cloud để người dùng ngoài 4G nhận biết
-      if (cloudMqttClient && cloudMqttClient.connected) {
+      if (shouldPublishCloud && cloudMqttClient && cloudMqttClient.connected) {
         const cloudTopic = `${CLOUD_TOPIC_PREFIX}/v1/devices/${deviceId}/response`;
         cloudMqttClient.publish(cloudTopic, JSON.stringify(updatedCommand), { qos: 1 });
       }
@@ -330,7 +326,7 @@ export const handleResponseMessage = async (deviceId, payloadStr) => {
 /**
  * Xử lý bản tin trạng thái sống còn (LWT / Online / Offline)
  */
-export const handleStatusMessage = async (deviceId, payloadStr) => {
+export const handleStatusMessage = async (deviceId, payloadStr, shouldPublishCloud = true) => {
   try {
     const status = payloadStr.trim().toUpperCase();
     const res = await query(
@@ -341,7 +337,7 @@ export const handleStatusMessage = async (deviceId, payloadStr) => {
       broadcastDeviceStatus(res.rows[0]);
 
       // Đồng bộ trạng thái thiết bị lên Cloud Broker
-      if (cloudMqttClient && cloudMqttClient.connected) {
+      if (shouldPublishCloud && cloudMqttClient && cloudMqttClient.connected) {
         const cloudTopic = `${CLOUD_TOPIC_PREFIX}/v1/devices/${deviceId}/status`;
         cloudMqttClient.publish(cloudTopic, status, { qos: 1, retain: true });
       }

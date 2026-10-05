@@ -95,12 +95,11 @@ export const autoInitDatabase = async () => {
       ON CONFLICT (username) DO NOTHING;
     `, [hash]);
 
-    // 8. Seed thiết bị mẫu
+    // 8. Seed thiết bị ESP32 duy nhất
     await query(`
       INSERT INTO devices (id, name, location, status, mode, fan_status, temp_threshold_high, temp_threshold_low)
       VALUES 
-        ('esp32_c3_cold_01', 'Tủ Thuốc & Vắc-xin ESP32-C3 Node', 'Phòng Lưu Trữ Y Tế 101', 'ONLINE', 'AUTO', FALSE, 26.0, 20.0),
-        ('cold_room_storage_02', 'Kho Lạnh Dược Phẩm Trung Tâm B', 'Tầng 1 - Khu Bảo Quản Lạnh', 'ONLINE', 'AUTO', TRUE, 8.0, 2.0)
+        ('esp32_c3_cold_01', 'Tủ Thuốc & Vắc-xin ESP32-C3 Node', 'Phòng Lưu Trữ Y Tế 101', 'ONLINE', 'AUTO', FALSE, 26.0, 20.0)
       ON CONFLICT (id) DO NOTHING;
     `);
 
