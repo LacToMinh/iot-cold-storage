@@ -18,6 +18,7 @@ export const autoInitDatabase = async () => {
     const tableExists = checkTable.rows[0].exists;
     if (tableExists) {
       console.log('📦 [Database Schema] Các bảng cơ sở dữ liệu đã sẵn sàng trên Supabase.');
+      await query(`UPDATE devices SET name = 'Kho Lạnh Thông Minh ESP32' WHERE id = 'esp32_c3_cold_01'`);
       return;
     }
 
@@ -99,8 +100,8 @@ export const autoInitDatabase = async () => {
     await query(`
       INSERT INTO devices (id, name, location, status, mode, fan_status, temp_threshold_high, temp_threshold_low)
       VALUES 
-        ('esp32_c3_cold_01', 'Tủ Thuốc & Vắc-xin ESP32-C3 Node', 'Phòng Lưu Trữ Y Tế 101', 'ONLINE', 'AUTO', FALSE, 26.0, 20.0)
-      ON CONFLICT (id) DO NOTHING;
+        ('esp32_c3_cold_01', 'Kho Lạnh Thông Minh ESP32', 'Phòng Lưu Trữ Y Tế 101', 'ONLINE', 'AUTO', FALSE, 26.0, 20.0)
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
     `);
 
     console.log('✅ [Database Init] Đã khởi tạo hoàn tất toàn bộ Bảng và Dữ liệu mẫu ban đầu trên Supabase!');

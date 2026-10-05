@@ -93,6 +93,33 @@ export const createDevice = async (req, res) => {
   }
 };
 
+export const updateDevice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, location, temp_threshold_high, temp_threshold_low, mode } = req.body;
+
+    const result = await query(
+      `UPDATE devices 
+       SET name = COALESCE($1, name),
+           location = COALESCE($2, location),
+           temp_threshold_high = COALESCE($3, temp_threshold_high),
+           temp_threshold_low = COALESCE($4, temp_threshold_low),
+           mode = COALESCE($5, mode)
+       WHERE id = $6 RETURNING *`,
+      [name, location, temp_threshold_high, temp_threshold_low, mode, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị!' });
+    }
+
+    broadcastDeviceStatus(result.rows[0]);
+    res.json({ success: true, message: 'Cập nhật thiết bị thành công!', data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật thiết bị', error: error.message });
+  }
+};
+
 export const updateThresholds = async (req, res) => {
   try {
     const { id } = req.params;

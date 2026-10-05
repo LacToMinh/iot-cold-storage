@@ -1,6 +1,6 @@
 import express from 'express';
 import { login, register, getMe } from '../controllers/authController.js';
-import { getDevices, getDeviceById, createDevice, updateThresholds, deleteDevice } from '../controllers/deviceController.js';
+import { getDevices, getDeviceById, createDevice, updateDevice, updateThresholds, deleteDevice } from '../controllers/deviceController.js';
 import { getDeviceTelemetryHistory, getDeviceTelemetryStats, postHttpTelemetry } from '../controllers/telemetryController.js';
 import { sendDeviceCommand, getDeviceCommands } from '../controllers/commandController.js';
 import { authenticateJWT } from '../middleware/auth.js';
@@ -16,6 +16,7 @@ router.get('/auth/me', authenticateJWT, getMe);
 router.get('/devices', authenticateJWT, getDevices);
 router.get('/devices/:id', authenticateJWT, getDeviceById);
 router.post('/devices', authenticateJWT, createDevice);
+router.put('/devices/:id', authenticateJWT, updateDevice);
 router.put('/devices/:id/thresholds', authenticateJWT, updateThresholds);
 router.delete('/devices/:id', authenticateJWT, deleteDevice);
 
