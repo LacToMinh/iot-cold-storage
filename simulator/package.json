@@ -1,0 +1,11 @@
+{
+  "name": "iot-cold-storage-simulator",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node device_simulator.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1"
+  }
+}
